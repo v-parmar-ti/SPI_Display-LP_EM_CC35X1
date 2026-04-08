@@ -230,30 +230,6 @@ void draw_color_bar_pattern(void)
 
 **Important:** Keep rendering fast - simple operations only.
 
-## Performance
-
-### ST7789 (240×320)
-
-| Metric | Value |
-|--------|-------|
-| Frame Data Size | 153,600 bytes |
-| SPI Speed | 40 MHz |
-| SPI Transfer Time | ~30.7 ms |
-| Actual FPS | ~24 FPS |
-| Memory Usage | ~12 bytes (state only) |
-| CPU per Frame | <1 ms |
-
-### ST7735 (128×128)
-
-| Metric | Value |
-|--------|-------|
-| Frame Data Size | 32,768 bytes |
-| SPI Speed | 15 MHz |
-| SPI Transfer Time | ~17.5 ms |
-| Actual FPS | ~24 FPS |
-| Memory Usage | ~12 bytes (state only) |
-| CPU per Frame | <1 ms |
-
 ## Implementation Details
 
 ### SPI Communication
