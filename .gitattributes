@@ -1,0 +1,12 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# Source files
+*.c text eol=lf
+*.h text eol=lf
+*.md text eol=lf
+
+# Build/Config files
+*.cmd text eol=lf
+*.syscfg text eol=lf
+Makefile text eol=lf
