@@ -89,12 +89,6 @@ Save the file and rebuild!
 | Missing headers | Verify `display_config.h` exists; rebuild with Clean |
 | Build fails | Run Project → Clean, then rebuild |
 
-## Flashing to Hardware
-
-1. **Connect Display Hardware** - Verify all GPIO connections are secure
-2. **Flash via CCS Theia** - Click Debug panel or Run → Debug As → TI SimpleLink Project
-3. **Verify Success** - Display should cycle colors, UART shows startup message
-
 ### Flash Troubleshooting
 
 | Problem | Solution |
