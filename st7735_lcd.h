@@ -54,6 +54,16 @@ void LCD_fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 void LCD_drawImage(const uint16_t *image);
 
 /**
+ * Blit an arbitrary rectangle of RGB565 pixels to the display.
+ * Used by the LVGL flush callback — full uint16_t coordinates, no centering.
+ * @param x0,y0  top-left pixel (inclusive)
+ * @param x1,y1  bottom-right pixel (inclusive)
+ * @param pixels pointer to (x1-x0+1)*(y1-y0+1) RGB565 values, row-major
+ */
+void LCD_drawRegion(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
+                    const uint16_t *pixels);
+
+/**
  * Blit a partial-height RGB565 frame into a horizontal band on the display.
  * Used to update only the animated content rows while leaving the black
  * border rows untouched.

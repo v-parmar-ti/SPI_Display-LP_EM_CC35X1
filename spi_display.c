@@ -63,7 +63,13 @@
 #error "No display configured! Edit display_config.h to select ST7789 or ST7735"
 #endif
 
-#define THREADSTACKSIZE (1024)
+/* Optional LVGL rendering engine */
+#ifdef USE_LVGL
+#include "lvgl.h"
+#include "lvgl_port.h"
+#endif
+
+#define THREADSTACKSIZE (8192)  /* LVGL requires significant stack for rendering */
 
 #ifdef DeviceFamily_CC35XX
     #define CONFIG_GPIO_LED_0 GPIO_INVALID_INDEX
@@ -74,6 +80,66 @@ static Display_Handle display;
 
 /* ========== Animated Pattern Demo ========== */
 static uint32_t frame_count = 0;
+
+#ifdef USE_LVGL
+/* -----------------------------------------------------------------------
+ * LVGL demo screen
+ *
+ * Builds a simple UI with a label, a spinner, and a progress bar that
+ * updates every frame.  Replace or extend this to suit your application.
+ * SquareLine Studio users: replace the body of lvgl_demo_create() with
+ * a call to ui_init() from the exported ui/ui.h header.
+ * ----------------------------------------------------------------------- */
+static lv_obj_t *g_progress_bar = NULL;
+static lv_obj_t *g_label_fps    = NULL;
+
+static void lvgl_demo_create(void)
+{
+    lv_obj_t *scr = lv_screen_active();
+
+    /* Dark background */
+    lv_obj_set_style_bg_color(scr, lv_color_hex(0x1A1A2E), LV_PART_MAIN);
+
+    /* Title label */
+    lv_obj_t *title = lv_label_create(scr);
+    lv_label_set_text(title, "CC3551E + LVGL v9");
+    lv_obj_set_style_text_color(title, lv_color_hex(0xE94560), LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, LV_PART_MAIN);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 12);
+
+    /* Spinner (rotating arc) */
+    lv_obj_t *spinner = lv_spinner_create(scr);
+    lv_obj_set_size(spinner, 60, 60);
+    lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -20);
+
+    /* Progress bar */
+    g_progress_bar = lv_bar_create(scr);
+    lv_obj_set_size(g_progress_bar, LCD_WIDTH - 30, 12);
+    lv_obj_align(g_progress_bar, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_bar_set_range(g_progress_bar, 0, 100);
+    lv_bar_set_value(g_progress_bar, 0, LV_ANIM_OFF);
+
+    /* FPS / status label */
+    g_label_fps = lv_label_create(scr);
+    lv_label_set_text(g_label_fps, "FPS: --");
+    lv_obj_set_style_text_color(g_label_fps, lv_color_hex(0xA8DADC), LV_PART_MAIN);
+    lv_obj_align(g_label_fps, LV_ALIGN_BOTTOM_MID, 0, -10);
+}
+
+static void lvgl_demo_update(uint32_t render_ms)
+{
+    if (g_progress_bar) {
+        /* Cycle the bar value 0-100 over 100 frames */
+        int32_t val = (int32_t)(frame_count % 101);
+        lv_bar_set_value(g_progress_bar, val, LV_ANIM_OFF);
+    }
+    if (g_label_fps) {
+        /* Show render time per frame — more stable than a derived FPS counter */
+        if (render_ms > 0)
+            lv_label_set_text_fmt(g_label_fps, "%lu ms/frame", (unsigned long)render_ms);
+    }
+}
+#endif /* USE_LVGL */
 
 /* Color palette */
 static const uint16_t color_palette[] = {
@@ -104,20 +170,70 @@ void *displayThread(void *arg0)
 
     Display_printf(display, 0, 0, "");
     Display_printf(display, 0, 0, "========================================");
+#ifdef USE_LVGL
+    Display_printf(display, 0, 0, "SPI Display + LVGL v9 Demo");
+#else
     Display_printf(display, 0, 0, "SPI Display Color Animation Demo");
+#endif
     Display_printf(display, 0, 0, "========================================");
     Display_printf(display, 0, 0, "MCU: CC3551E");
-    #ifdef USE_ST7789
+#ifdef USE_ST7789
     Display_printf(display, 0, 0, "Display: ST7789 (240x320 pixels)");
-    #endif 
-    #ifdef USE_ST7735
-    Display_printf(display, 0, 0, "Display: ST7733 (128x128 pixels)");
-    #endif
+#endif
+#ifdef USE_ST7735
+    Display_printf(display, 0, 0, "Display: ST7735 (128x128 pixels)");
+#endif
+#ifdef USE_LVGL
+    Display_printf(display, 0, 0, "Renderer: LVGL v9");
+#endif
     Display_printf(display, 0, 0, "Status: Initializing...");
     Display_printf(display, 0, 0, "========================================");
     Display_printf(display, 0, 0, "");
 
-    /* Demo counters */
+#ifdef USE_LVGL
+    /* ---- LVGL path ---------------------------------------------------- */
+    lv_init();
+    lvgl_port_init();
+
+    /* Build the demo UI (replace with ui_init() for SquareLine projects) */
+    lvgl_demo_create();
+
+    Display_printf(display, 0, 0, "LVGL ready. Running UI loop.");
+
+    uint32_t last_logged_frame = 0;
+    uint32_t batch_start_tick  = lv_tick_get(); /* ms from LVGL tick — always valid */
+
+    while (1)
+    {
+        /* Drive LVGL rendering and animation engine */
+        lv_timer_handler();
+
+        frame_count++;
+
+        /* Log every 100 lv_timer_handler calls */
+        if (frame_count - last_logged_frame >= 100) {
+            uint32_t now_tick   = lv_tick_get();
+            uint32_t elapsed_ms = now_tick - batch_start_tick; /* wraps safely at UINT32_MAX */
+            uint32_t ms_per_frame = elapsed_ms / 100;
+
+            last_logged_frame = frame_count;
+            batch_start_tick  = now_tick;
+
+            /* Update on-screen label */
+            lvgl_demo_update(ms_per_frame);
+
+            Display_printf(display, 0, 0,
+                "Frames: %lu | Last 100 frames: %lu ms | ~%lu ms/frame",
+                (unsigned long)frame_count,
+                (unsigned long)elapsed_ms,
+                (unsigned long)ms_per_frame);
+        }
+
+        usleep(5000);  /* 5 ms — yields to other tasks between renders */
+    }
+
+#else
+    /* ---- Built-in color-cycling demo path ----------------------------- */
     uint32_t last_logged_frame = 0;
 
     /* Target frame rate: 24 FPS = ~41.67ms per frame */
@@ -168,6 +284,7 @@ void *displayThread(void *arg0)
             usleep(sleep_ms * 1000);
         }
     }
+#endif /* USE_LVGL */
 
     return (NULL);
 }
@@ -227,6 +344,22 @@ void *mainThread(void *arg0)
         /* pthread_attr_setstacksize() failed */
         while (1) {}
     }
+
+#ifdef USE_LVGL
+    /* Create LVGL tick task at highest priority — must run every 1 ms */
+    {
+        pthread_t tickThread;
+        pthread_attr_t tickAttrs;
+        struct sched_param tickPri;
+        pthread_attr_init(&tickAttrs);
+        pthread_attr_setdetachstate(&tickAttrs, PTHREAD_CREATE_DETACHED);
+        pthread_attr_setstacksize(&tickAttrs, 512);
+        tickPri.sched_priority = 2;  /* above display thread (1); FreeRTOS max is 9 */
+        pthread_attr_setschedparam(&tickAttrs, &tickPri);
+        retc = pthread_create(&tickThread, &tickAttrs, lvgl_port_tick_task, NULL);
+        if (retc != 0) { while (1) {} }
+    }
+#endif /* USE_LVGL */
 
     /* Create display thread */
     priParam.sched_priority = 1;

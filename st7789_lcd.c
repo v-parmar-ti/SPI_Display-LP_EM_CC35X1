@@ -266,6 +266,34 @@ void LCD_fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 }
 
 /* -----------------------------------------------------------------------
+ * Blit an arbitrary rectangular region (LVGL flush target).
+ * Coordinates are full uint16_t — no truncation, no centering offset.
+ * pixels must contain (x1-x0+1)*(y1-y0+1) RGB565 values in row-major order.
+ * ----------------------------------------------------------------------- */
+void LCD_drawRegion(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
+                    const uint16_t *pixels)
+{
+    LCD_setAddrWindow(x0, y0, x1, y1);
+
+#define REGION_CHUNK 64
+    uint8_t buf[REGION_CHUNK * 2];
+    int total = (int)(x1 - x0 + 1) * (int)(y1 - y0 + 1);
+
+    LCD_dc_hi();
+    LCD_cs_lo();
+    for (int i = 0; i < total; i += REGION_CHUNK) {
+        int n = total - i;
+        if (n > REGION_CHUNK) n = REGION_CHUNK;
+        for (int j = 0; j < n; j++) {
+            buf[j * 2]     = (uint8_t)(pixels[i + j] >> 8);
+            buf[j * 2 + 1] = (uint8_t)(pixels[i + j] & 0xFF);
+        }
+        LCD_spiWrite(buf, (size_t)(n * 2));
+    }
+    LCD_cs_hi();
+}
+
+/* -----------------------------------------------------------------------
  * Blit a partial-height frame into a horizontal band
  * ----------------------------------------------------------------------- */
 void LCD_drawContentFrame(const uint16_t *frame, uint8_t yOffset, uint8_t contentHeight,
