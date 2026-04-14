@@ -45,7 +45,9 @@ Connect your SPI display to the CC35X1 LaunchPad using these GPIO pins:
 
 ### Building & Flashing
 
-1. **Clone the repository:**
+1. **Clone the repository into the CCS workspace:**
+   - In CCS Theia, open **Terminal → New Terminal** — this opens a shell in your CCS workspace directory
+   - Run:
    ```bash
    git clone https://github.com/v-parmar-ti/SPI_Display-LP_EM_CC35X1.git SPI_Display
    cd SPI_Display
