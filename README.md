@@ -1,7 +1,8 @@
 # SPI Display Project
 
 SPI display demo for TI CC3551E wireless microcontroller with support for ST7789 (240×320) and ST7735 (128×128) displays.
-Includes optional [LVGL v9](https://lvgl.io) integration for building rich graphical UIs and support for SquareLine Studio GUI design tool.
+Uses [LVGL v9](https://lvgl.io) for UI rendering by default, with support for the SquareLine Studio GUI design tool.
+A built-in color-cycling demo is also available without LVGL for a minimal starting point.
 
 This example project is based on SIMPLELINK-WIFI-SDK (install separately).
 
@@ -44,20 +45,58 @@ Connect your SPI display to the CC35X1 LaunchPad using these GPIO pins:
 
 ### Building & Flashing
 
-1. **Clone / import** — Import the `SPI_Display` project into CCS Theia (see [Importing the project](#importing-the-project) below).
-2. **Select display** — Edit `display_config.h`:
-   ```c
-   #define USE_ST7789   /* 240×320 (default) */
-   /* #define USE_ST7735 */  /* 128×128 */
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/v-parmar-ti/SPI_Display-LP_EM_CC35X1.git SPI_Display
+   cd SPI_Display
+   git submodule update --init --recursive
    ```
-3. **Build** — Right-click project → **Build Project**
-4. **Flash** — **Run → Start Debugging**
 
-### Expected Output (built-in demo, no LVGL)
+2. **Import into CCS Theia:**
+   - File → **Import** → **C/C++ → CCS Project from .projectspec**
+   - Browse to `SPI_Display.projectspec` and click **Finish**
+   - CCS generates the project configuration automatically — no manual include path setup needed
+
+3. **Select display** — Edit `display_config.h` if needed (ST7789 + LVGL enabled by default):
+   ```c
+   /* --- Display controller (pick one) --- */
+   #define USE_ST7789
+   //#define USE_ST7735
+
+   /* --- Optional: LVGL rendering engine --- */
+   #define USE_LVGL
+   ```
+
+4. **Build** — Right-click project → **Build Project**
+
+5. **Flash** — **Run → Start Debugging**
+
+### Expected Output (default — LVGL enabled)
+
+**Display:** Demo screen with title, animated spinner, cycling progress bar, and render-time label.
+
+**Console (115200 baud, 8N1):**
+```
+========================================
+SPI Display + LVGL v9 Demo
+========================================
+MCU: CC3551E
+Display: ST7789 (240x320 pixels)
+Renderer: LVGL v9
+Status: Initializing...
+========================================
+LVGL ready. Running UI loop.
+Frames: 100 | Last 100 frames: 812 ms | ~8 ms/frame
+Frames: 200 | Last 100 frames: 809 ms | ~8 ms/frame
+```
+
+### Expected Output (built-in color demo, LVGL disabled)
+
+To use the simpler built-in demo, comment out `USE_LVGL` in `display_config.h`.
 
 **Display:** Solid colors cycling — Red → Yellow → Green → Cyan → Blue → Magenta
 
-**Console (115200 baud, 8N1):**
+**Console:**
 ```
 ========================================
 SPI Display Color Animation Demo
@@ -68,7 +107,6 @@ Status: Initializing...
 ========================================
 
 Status: Runtime: 4.2 sec | Frames: 100 | FPS: 24.00
-Status: Runtime: 8.3 sec | Frames: 200 | FPS: 24.00
 ```
 
 ---
@@ -80,59 +118,56 @@ This project includes a display port (`lvgl_port.c/h`) and a minimal configurati
 
 ### Step 1 — Clone the LVGL submodule
 
-LVGL is not bundled in this repository. Add it as a git submodule inside the `SPI_Display/` project folder:
+The LVGL submodule reference is already registered in this repository. After cloning, populate it with:
 
 ```bash
-cd SPI_Display/
-git submodule add https://github.com/lvgl/lvgl.git lvgl
 git submodule update --init --recursive
 ```
 
-After cloning, the directory structure will be:
+This is already included in the Quick Start clone step. The directory structure after cloning will be:
 
 ```
 SPI_Display/
-├── lvgl/           ← LVGL v9 source (submodule)
-├── lv_conf.h       ← LVGL configuration (already in project)
-├── lvgl_port.c/h   ← Display port (already in project)
+├── lvgl/           ← LVGL v9 source (populated by submodule update)
+├── lv_conf.h       ← LVGL configuration
+├── lvgl_port.c/h   ← Display port
 └── ...
 ```
 
-To check out a specific stable release (recommended for reproducible builds):
+To pin to a specific LVGL release for reproducible builds:
 
 ```bash
 cd lvgl/
-git checkout v9.2.2   # or latest v9.x tag
+git checkout v9.2.2   # or any v9.x tag
 cd ..
 git add lvgl
 git commit -m "Pin LVGL submodule to v9.2.2"
 ```
 
-> **Future clones:** After the submodule is committed, anyone cloning the repo must run:
-> ```bash
-> git submodule update --init --recursive
-> ```
+### Step 2 — Import the project
 
-### Step 2 — Add LVGL sources to the CCS project
+If you followed the Quick Start, the project is already imported via `SPI_Display.projectspec` and all include paths and preprocessor defines are configured automatically. No manual project properties changes are needed.
 
-CCS Theia does not auto-discover source files in submodules. Add the LVGL source tree manually in project properties:
+If you need to set up the project properties manually (e.g. after recreating the project), add:
 
-**Source path** (Right-click project → Properties → Build → Source Locations):
-- Add: `${PROJECT_ROOT}/lvgl/src` — check **recursive** (or "Include subdirectories")
+**Source path** (Properties → Build → Source Locations):
+- `${PROJECT_ROOT}/lvgl/src` — recursive
 
 **Include paths** (Properties → Build → TI Clang Compiler → Include Options):
-- Add: `${PROJECT_ROOT}/lvgl`
-- Add: `${PROJECT_ROOT}`
+- `${PROJECT_ROOT}/lvgl`
+- `${PROJECT_ROOT}`
 
 **Preprocessor define** (Properties → Build → TI Clang Compiler → Predefined Symbols):
-- Add: `LV_CONF_INCLUDE_SIMPLE`
+- `LV_CONF_INCLUDE_SIMPLE`
 
-### Step 3 — Enable LVGL in display_config.h
+### Step 3 — Verify display_config.h
+
+LVGL is enabled by default. Confirm `display_config.h` matches your connected display:
 
 ```c
 /* display_config.h */
 #define USE_ST7789    /* or USE_ST7735 */
-#define USE_LVGL      /* ← uncomment this line */
+#define USE_LVGL      /* enabled by default */
 ```
 
 ### Step 4 — Build and flash
@@ -212,14 +247,25 @@ Both drivers are always compiled into the project. Select which one is active in
 
 ### ST7789 (240×320) — default
 ```c
+/* --- Display controller (pick one) --- */
 #define USE_ST7789
-/* #define USE_ST7735 */
+//#define USE_ST7735
 ```
 
 ### ST7735 (128×128)
 ```c
-/* #define USE_ST7789 */
+/* --- Display controller (pick one) --- */
+//#define USE_ST7789
 #define USE_ST7735
+```
+
+## Disabling LVGL
+
+To use the built-in color-cycling demo instead of LVGL, comment out `USE_LVGL` in `display_config.h`:
+
+```c
+/* --- Optional: LVGL rendering engine --- */
+//#define USE_LVGL
 ```
 
 Save and rebuild.
@@ -234,22 +280,23 @@ This project demonstrates SPI display control on the CC35xxE wireless microcontr
 
 ```
 SPI_Display/
-├── spi_display.c        Main application (color demo + LVGL demo)
-├── spi_display.syscfg   TI Drivers hardware configuration
-├── main_freertos.c      FreeRTOS bootstrap
-├── display_config.h     Display and renderer selection
-├── st7789_lcd.c/h       ST7789 driver (240×320)
-├── st7735_lcd.c/h       ST7735 driver (128×128)
-├── lv_conf.h            LVGL v9 configuration
-├── lvgl_port.c/h        LVGL display port (flush callback + tick task)
-├── lvgl/                LVGL v9 git submodule (clone separately)
+├── SPI_Display.projectspec  CCS project definition (import this to set up the project)
+├── spi_display.c            Main application (color demo + LVGL demo)
+├── spi_display.syscfg       TI Drivers hardware configuration
+├── main_freertos.c          FreeRTOS bootstrap
+├── display_config.h         Display and renderer selection
+├── st7789_lcd.c/h           ST7789 driver (240×320)
+├── st7735_lcd.c/h           ST7735 driver (128×128)
+├── lv_conf.h                LVGL v9 configuration
+├── lvgl_port.c/h            LVGL display port (flush callback + tick task)
+├── lvgl/                    LVGL v9 git submodule (populated via git submodule update)
 │   └── ...
-├── ui/                  SquareLine Studio export (add after exporting)
+├── ui/                      SquareLine Studio export (add after exporting)
 │   ├── ui.c
 │   ├── ui.h
 │   └── components/
-├── README.md            This file
-└── Debug/               Build output
+├── README.md                This file
+└── Debug/                   Build output
 ```
 
 ### Architecture
@@ -257,17 +304,17 @@ SPI_Display/
 ```
 Application
    │
-   ├── [USE_LVGL not set] draw_color_bar_pattern()  → LCD_fillScreen()
+   ├── [USE_LVGL set — default]  lv_timer_handler()
+   │                                 │
+   │                                 └── lvgl_flush_cb()  → LCD_drawRegion()
+   │                                           │
+   │                                     st7789_lcd.c / st7735_lcd.c
+   │                                           │
+   │                                       SPI (TI Drivers)
+   │                                           │
+   │                                       ST7789 / ST7735
    │
-   └── [USE_LVGL set]     lv_timer_handler()
-                              │
-                              └── lvgl_flush_cb()  → LCD_drawContentFrame()
-                                        │
-                                  st7789_lcd.c / st7735_lcd.c
-                                        │
-                                    SPI (TI Drivers)
-                                        │
-                                    ST7789 / ST7735
+   └── [USE_LVGL not set]        draw_color_bar_pattern()  → LCD_fillScreen()
 ```
 
 **Threads:**

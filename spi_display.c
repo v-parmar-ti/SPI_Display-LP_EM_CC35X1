@@ -100,30 +100,65 @@ static void lvgl_demo_create(void)
     /* Dark background */
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x1A1A2E), LV_PART_MAIN);
 
-    /* Title label */
+#ifdef USE_ST7735
+    /*
+     * ST7735 128x128 compact layout:
+     *   Title  (12px font) — top, 4px margin
+     *   Spinner (36x36)   — center
+     *   Progress bar      — 14px above bottom
+     *   Status label      — bottom, 4px margin
+     */
+    lv_obj_t *title = lv_label_create(scr);
+    lv_label_set_text(title, "CC3551E + LVGL v9");
+    lv_obj_set_style_text_color(title, lv_color_hex(0xE94560), LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_12, LV_PART_MAIN);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
+
+    lv_obj_t *spinner = lv_spinner_create(scr);
+    lv_obj_set_size(spinner, 36, 36);
+    lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -8);
+
+    g_progress_bar = lv_bar_create(scr);
+    lv_obj_set_size(g_progress_bar, LCD_WIDTH - 20, 8);
+    lv_obj_align(g_progress_bar, LV_ALIGN_BOTTOM_MID, 0, -16);
+    lv_bar_set_range(g_progress_bar, 0, 100);
+    lv_bar_set_value(g_progress_bar, 0, LV_ANIM_OFF);
+
+    g_label_fps = lv_label_create(scr);
+    lv_label_set_text(g_label_fps, "--");
+    lv_obj_set_style_text_color(g_label_fps, lv_color_hex(0xA8DADC), LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_label_fps, &lv_font_montserrat_12, LV_PART_MAIN);
+    lv_obj_align(g_label_fps, LV_ALIGN_BOTTOM_MID, 0, -4);
+
+#else
+    /*
+     * ST7789 240x320 standard layout:
+     *   Title  (16px font) — top, 12px margin
+     *   Spinner (60x60)   — center, shifted up
+     *   Progress bar      — 30px above bottom
+     *   Status label      — bottom, 10px margin
+     */
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "CC3551E + LVGL v9");
     lv_obj_set_style_text_color(title, lv_color_hex(0xE94560), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, LV_PART_MAIN);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 12);
 
-    /* Spinner (rotating arc) */
     lv_obj_t *spinner = lv_spinner_create(scr);
     lv_obj_set_size(spinner, 60, 60);
     lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -20);
 
-    /* Progress bar */
     g_progress_bar = lv_bar_create(scr);
     lv_obj_set_size(g_progress_bar, LCD_WIDTH - 30, 12);
     lv_obj_align(g_progress_bar, LV_ALIGN_BOTTOM_MID, 0, -30);
     lv_bar_set_range(g_progress_bar, 0, 100);
     lv_bar_set_value(g_progress_bar, 0, LV_ANIM_OFF);
 
-    /* FPS / status label */
     g_label_fps = lv_label_create(scr);
-    lv_label_set_text(g_label_fps, "FPS: --");
+    lv_label_set_text(g_label_fps, "--");
     lv_obj_set_style_text_color(g_label_fps, lv_color_hex(0xA8DADC), LV_PART_MAIN);
     lv_obj_align(g_label_fps, LV_ALIGN_BOTTOM_MID, 0, -10);
+#endif
 }
 
 static void lvgl_demo_update(uint32_t render_ms)
