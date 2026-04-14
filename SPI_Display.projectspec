@@ -36,6 +36,7 @@
             -I${COM_TI_SIMPLELINK_WIFI_SDK_INSTALL_DIR}/source/third_party/freertos/include
             -I${COM_TI_SIMPLELINK_WIFI_SDK_INSTALL_DIR}/source/third_party/freertos/portable/GCC/ARM_CM33_NTZ/non_secure
             -I${PROJECT_ROOT}/lvgl
+            -I${PROJECT_ROOT}/lvgl/src
             -mcpu=cortex-m33
             -mfloat-abi=hard
             -mfpu=fpv5-sp-d16
@@ -80,7 +81,9 @@
         <file path="${COM_TI_SIMPLELINK_WIFI_SDK_INSTALL_DIR}/source/ti/boards/LP_EM_CC35X1/Board.html"
               openOnCreation="false" excludeFromBuild="false" action="link"/>
 
-        <!-- LVGL source tree (requires lvgl/ submodule to be cloned first) -->
-        <file path="lvgl/src" openOnCreation="false" excludeFromBuild="false" action="link" targetDirectory="lvgl/src"/>
+        <!-- LVGL source tree (requires lvgl/ submodule to be cloned first).
+             Adds lvgl/src as a recursive source location so all .c files
+             under it are compiled without manual project property changes. -->
+        <source path="lvgl/src" targetDirectory="lvgl/src"/>
     </project>
 </projectSpec>
